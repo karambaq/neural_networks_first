@@ -27,11 +27,11 @@ class MainWindow(QWidget):
         self.setWindowTitle('Center')
         self.filename = ''
 
-        self.choose_img = QPushButton('Открыть', self)
+        self.choose_img = QPushButton('Open', self)
         self.choose_img.move(700, 0)
         self.choose_img.clicked.connect(self.open_on_click)
 
-        self.save_img = QPushButton('Сохранить', self)
+        self.save_img = QPushButton('Save', self)
         self.save_img.move(800, 0)
         self.save_img.resize(90, 27)
         self.save_img.clicked.connect(self.save_on_click)
@@ -42,7 +42,7 @@ class MainWindow(QWidget):
         self.border.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.border.setText('128')
 
-        self.bin_0s_and_1s = QPushButton('0 and 1', self)
+        self.bin_0s_and_1s = QPushButton('Binarization', self)
         self.bin_0s_and_1s.move(780, 50)
         self.bin_0s_and_1s.resize(110, 25)
         self.bin_0s_and_1s.clicked.connect(self.to_0s_and_1s_on_click)
@@ -53,7 +53,7 @@ class MainWindow(QWidget):
         self.border1s.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.border1s.setText('128')
 
-        self.bin_1s_and_1s = QPushButton('-1 and 1', self)
+        self.bin_1s_and_1s = QPushButton('Bipol', self)
         self.bin_1s_and_1s.move(780, 80)
         self.bin_1s_and_1s.resize(110, 25)
         self.bin_1s_and_1s.clicked.connect(self.to_1s_on_click)
@@ -73,7 +73,7 @@ class MainWindow(QWidget):
         self.bin_limit = QPushButton('Limit', self)
         self.bin_limit.move(800, 115)
         self.bin_limit.resize(90, 25)
-        self.bin_limit.clicked.connect(self.to_1s_on_click)
+        self.bin_limit.clicked.connect(self.bounds_on_click)
 
         self.color_picker = QPushButton('Open color dialog', self)
         self.color_picker.setToolTip('Opens color dialog')
@@ -116,63 +116,44 @@ class MainWindow(QWidget):
         gray = col.convert('L')
         bw = np.asarray(gray).copy()
         border = int(self.border.toPlainText())
-        bw[bw < border] = 0  # Black
-        bw[bw >= border] = self.col  # Color
+
+        bw[abs(bw - self.col) < border] = 0  # Black
+        bw[abs(bw - self.col) >= border] = 255  # White
+
         img = Image.fromarray(bw)
         self.label.setPixmap(img.toqpixmap().scaled(670, 500))
         self.show()
-        bw[bw < border] = 0
-        bw[bw >= border] = 1
-        np.savetxt('binary_0s_and_1s.txt', bw, fmt='%i', delimiter=",")
+        bw[bw < border] = 1
+        bw[bw >= border] = 0
+        np.savetxt('binarization.txt', bw, fmt='%i', delimiter=",")
 
     def to_1s_on_click(self):
         col = Image.open(self.filename)
         gray = col.convert('L')
         bw = np.asarray(gray).copy()
         border = int(self.border.toPlainText())
-        bw[bw < border] = 0  # Black
-        bw[bw >= border] = self.col  # Color
+        bw[abs(bw - self.col) < border] = 0  # Black
+        bw[abs(bw - self.col) >= border] = 255  # White
+
+        b = bw.astype(int)
+        b[b == 0] = -1
+        b[b == 255] = 1
+        np.savetxt('bipol.txt', b, fmt='%i', delimiter=",")
+
         img = Image.fromarray(bw)
         self.label.setPixmap(img.toqpixmap().scaled(670, 500))
         self.show()
 
-
-        # self.w = []
-        # for x in np.nditer(bw, op_flags=['readwrite']):
-        #     if x == 0:
-        #         self.w.extend([-1])
-        #     else:
-        #         self.w.extend([1])
-        # print("here")
-        # # print_to_
-        #
-        # with open("w.txt", "w") as f:
-        #     for i in self.w:
-        #         f.write(str(i))
-        #         f.write(',')
-        # f.close()
-
-        # print("here1")
-        # for i in range(len(bw)):
-        #     if bw[i] == 0:
-        #         print("yea")
-        # print(w)
-
-        # np.savetxt('binarys.txt', bw, fmt='%i', delimiter=",")
-        # bw[bw == 0] = -1
-        # bw[bw >= border] = 1
-
-
-        # for i in range(len(bw)):
-        #     if bw[i] == 0:
-        #         bw[i] = -1
-        #     else:
-        #         bw[i] = 1
-
-        # for i in bw:
-        #     print(i)
-        # np.savetxt('binarys_after.txt', bw, fmt='%s', delimiter=",")
-        # np.savetxt('binary_1s.txt', bw, fmt='%s', delimiter=",")
+    def bounds_on_click(self):
+        col = Image.open(self.filename)
+        gray = col.convert('L')
+        bw = np.asarray(gray).copy()
+        left_bound = int(self.border_from.toPlainText())
+        right_bound = int(self.border_to.toPlainText())
+        sc = 256 / (left_bound + right_bound)
+        ca = bw.astype(float).copy()
+        ra = ca / sc
+        np.savetxt('after_a_b.txt', ra, fmt='%f', delimiter=",")
 
     def open_file_name_dialog(self):
         options = QFileDialog.Options()
